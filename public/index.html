@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MT5 Trading</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .card { background: white; padding: 20px; margin: 10px 0; border-radius: 10px; }
+        select, input, button { width: 100%; padding: 10px; margin: 5px 0; }
+        button { background: #667eea; color: white; border: none; border-radius: 5px; }
+        .price { font-size: 24px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MT5 Trading</h1>
+        
+        <div class="card">
+            <select id="accountSelect"></select>
+            <button onclick="connect()">Connect</button>
+        </div>
+
+        <div class="card" id="info" style="display:none">
+            <div>Balance: $<span id="balance">0</span></div>
+            <div>Equity: $<span id="equity">0</span></div>
+        </div>
+
+        <div class="card" id="trade" style="display:none">
+            <select id="symbol">
+                <option value="EURUSD">EUR/USD</option>
+                <option value="GBPUSD">GBP/USD</option>
+            </select>
+            <select id="type">
+                <option value="buy">BUY</option>
+                <option value="sell">SELL</option>
+            </select>
+            <input type="number" id="volume" value="0.01" step="0.01">
+            <button onclick="trade()">Place Trade</button>
+        </div>
+
+        <div class="card" id="priceDisplay"></div>
+    </div>
+
+    <script>
+        async function loadAccounts() {
+            const res = await fetch('/api/accounts');
+            const data = await res.json();
+            if (data.success) {
+                const select = document.getElementById('accountSelect');
+                select.innerHTML = '<option>Select account</option>' + 
+                    data.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            }
+        }
+
+        async function connect() {
+            const accountId = document.getElementById('accountSelect').value;
+            const res = await fetch(`/api/connect/${accountId}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('info').style.display = 'block';
+                document.getElementById('trade').style.display = 'block';
+                document.getElementById('balance').textContent = data.accountInfo.balance;
+                document.getElementById('equity').textContent = data.accountInfo.equity;
+                alert('Connected!');
+            }
+        }
+
+        async function trade() {
+            const tradeData = {
+                symbol: document.getElementById('symbol').value,
+                type: document.getElementById('type').value,
+                volume: parseFloat(document.getElementById('volume').value)
+            };
+            const res = await fetch('/api/trade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tradeData)
+            });
+            const data = await res.json();
+            alert(data.success ? 'Trade placed!' : 'Failed: ' + data.error);
+        }
+
+        loadAccounts();
+    </script>
+</body>
+</html>
